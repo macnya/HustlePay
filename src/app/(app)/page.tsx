@@ -43,18 +43,18 @@ export default function DashboardPage() {
             <CardDescription>Get started with common tasks.</CardDescription>
           </CardHeader>
           <CardContent className="grid gap-4">
-            <Link href="/contributions" passHref>
+            <Link href="/contributions">
               <Button className="w-full justify-start" variant="outline">
                 <DollarSign className="mr-2 h-4 w-4" /> Log New Contribution
               </Button>
             </Link>
-            <Link href="/chamas/create" passHref> 
+            <Link href="/chamas/create"> 
               {/* Assuming /chamas/create for direct creation or handled by /chamas page */}
               <Button className="w-full justify-start" variant="outline">
                 <Users className="mr-2 h-4 w-4" /> Create New Chama
               </Button>
             </Link>
-            <Link href="/chamas" passHref>
+            <Link href="/chamas">
               <Button className="w-full justify-start" variant="outline">
                 <ArrowRight className="mr-2 h-4 w-4" /> View All Chamas
               </Button>

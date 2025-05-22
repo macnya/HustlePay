@@ -115,7 +115,7 @@ export default function AuthPage() {
             <p className="text-xs text-muted-foreground">
                 Authentication is simulated. For development:
             </p>
-            <Link href="/" passHref>
+            <Link href="/">
                  <Button variant="link" className="text-primary">Go to Dashboard</Button>
             </Link>
         </CardFooter>

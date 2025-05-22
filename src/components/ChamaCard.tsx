@@ -65,7 +65,7 @@ export default function ChamaCard({ chama }: ChamaCardProps) {
         )}
       </CardContent>
       <CardFooter>
-        <Link href={`/chamas/${chama.id}`} passHref className="w-full">
+        <Link href={`/chamas/${chama.id}`} className="w-full">
           <Button variant="default" className="w-full">
             View Details <ArrowRight className="ml-2 h-4 w-4" />
           </Button>

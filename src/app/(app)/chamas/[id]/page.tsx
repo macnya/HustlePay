@@ -78,7 +78,7 @@ export default function ChamaDetailsPage() {
             <Info size={64} className="text-destructive mb-4" />
             <h1 className="text-2xl font-semibold mb-2">Chama Not Found</h1>
             <p className="text-muted-foreground mb-6">The chama you are looking for does not exist or you may not have permission to view it.</p>
-            <Link href="/chamas" passHref>
+            <Link href="/chamas">
                 <Button variant="outline">
                     <ArrowLeft className="mr-2 h-4 w-4" /> Back to Chamas
                 </Button>
@@ -92,7 +92,7 @@ export default function ChamaDetailsPage() {
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between">
-        <Link href="/chamas" passHref>
+        <Link href="/chamas">
             <Button variant="outline" size="sm">
                 <ArrowLeft className="mr-2 h-4 w-4" /> Back to Chamas
             </Button>
