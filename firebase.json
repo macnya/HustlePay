@@ -24,22 +24,12 @@
         "*.local"
       ],
       "predeploy": [
+        "npm --prefix \"$RESOURCE_DIR\" install",
         "npm --prefix \"$RESOURCE_DIR\" run build"
       ]
     }
   ],
   "apphosting": [
-    {
-      "backendId": "my-web-app",
-      "rootDir": "/",
-      "ignore": [
-        "node_modules",
-        ".git",
-        "firebase-debug.log",
-        "firebase-debug.*.log",
-        "functions"
-      ]
-    },
     {
       "backendId": "my-web-app",
       "rootDir": "/",
