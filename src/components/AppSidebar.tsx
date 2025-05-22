@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from 'next/link';
@@ -48,7 +49,7 @@ export default function AppSidebar({ isMobileSheet = false }: AppSidebarProps) {
   const renderNavItems = (items: NavItem[]) => {
     return items.map((item) => (
       <SidebarMenuItem key={item.href}>
-        <Link href={item.href} passHref legacyBehavior>
+        <Link href={item.href}>
           <SidebarMenuButton
             isActive={pathname === item.href}
             asChild={false} // Ensure it's a button or acts like one for styling
