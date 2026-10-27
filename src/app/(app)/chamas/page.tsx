@@ -1,68 +1,64 @@
 "use client";
 
-import React, { useState } from 'react';
-import ChamaCard from '@/components/ChamaCard';
-import type { Chama } from '@/types';
-import { Button } from '@/components/ui/button';
-import { PlusCircle, Search } from 'lucide-react';
-import { Input } from '@/components/ui/input';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { ChamaForm } from '@/components/ChamaForm';
-
-// Mock data for chamas
-const mockChamas: Chama[] = [
-  {
-    id: '1',
-    name: 'Holiday Savings Club',
-    description: 'Saving up for a group vacation to Zanzibar next year. Fun times ahead!',
-    contributionAmount: 5000,
-    contributionFrequency: 'monthly',
-    members: Array(5).fill(null).map((_, i) => ({ id: `m${i}`, name: `Member ${i+1}`, phone: '0700000000', joinedDate: new Date().toISOString(), totalContributed: 20000 })),
-    createdAt: new Date().toISOString(),
-    adminId: 'user1',
-    totalCollected: 100000,
-    goalAmount: 250000,
-    nextMeeting: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-  },
-  {
-    id: '2',
-    name: 'Tech Investment Group',
-    description: 'Pooling funds to invest in promising tech startups and stocks. High risk, high reward!',
-    contributionAmount: 10000,
-    contributionFrequency: 'monthly',
-    members: Array(8).fill(null).map((_, i) => ({ id: `m${i}`, name: `Member ${i+1}`, phone: '0700000000', joinedDate: new Date().toISOString(), totalContributed: 40000 })),
-    createdAt: new Date().toISOString(),
-    adminId: 'user2',
-    totalCollected: 320000,
-    goalAmount: 1000000,
-  },
-  {
-    id: '3',
-    name: 'Emergency Fund Chama',
-    description: 'A safety net for all members. Contributions go towards helping members in times of need.',
-    contributionAmount: 2000,
-    contributionFrequency: 'weekly',
-    members: Array(12).fill(null).map((_, i) => ({ id: `m${i}`, name: `Member ${i+1}`, phone: '0700000000', joinedDate: new Date().toISOString(), totalContributed: 16000 })),
-    createdAt: new Date().toISOString(),
-    adminId: 'user3',
-    totalCollected: 192000,
-    nextMeeting: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
-  },
-];
+import React, { useCallback, useEffect, useState } from "react";
+import ChamaCard from "@/components/ChamaCard";
+import type { Chama } from "@/types";
+import { Button } from "@/components/ui/button";
+import { PlusCircle, Search, Users } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { ChamaForm } from "@/components/ChamaForm";
+import { Skeleton } from "@/components/ui/skeleton";
+import { createClient } from "@/lib/supabase/client";
+import { toChama, type ChamaRow } from "@/lib/mappers";
 
 export default function ChamasPage() {
-  const [chamas, setChamas] = useState<Chama[]>(mockChamas);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [chamas, setChamas] = useState<Chama[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
   const [isCreateChamaDialogOpen, setCreateChamaDialogOpen] = useState(false);
 
+  const loadChamas = useCallback(async () => {
+    const supabase = createClient();
+    const { data, error } = await supabase
+      .from("chamas")
+      .select("*, chama_members(*)")
+      .order("created_at", { ascending: false });
+
+    if (!error && data) {
+      setChamas((data as ChamaRow[]).map(toChama));
+    }
+    setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    loadChamas();
+  }, [loadChamas]);
+
   const handleChamaCreated = (newChama: Chama) => {
-    setChamas(prevChamas => [newChama, ...prevChamas]);
-    // setCreateChamaDialogOpen(false); // ChamaForm handles this with setOpen
+    setChamas((prev) => [newChama, ...prev.filter((c) => c.id !== newChama.id)]);
   };
 
-  const filteredChamas = chamas.filter(chama =>
-    chama.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    chama.description.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredChamas = chamas.filter(
+    (chama) =>
+      chama.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      chama.description.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const createDialog = (open: boolean, onOpenChange: (o: boolean) => void) => (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogTrigger asChild>
+        <Button>
+          <PlusCircle className="mr-2 h-5 w-5" /> Create New Chama
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-[525px]">
+        <DialogHeader>
+          <DialogTitle className="text-2xl">Create a New Chama</DialogTitle>
+        </DialogHeader>
+        <ChamaForm onSuccess={handleChamaCreated} setOpen={onOpenChange} />
+      </DialogContent>
+    </Dialog>
   );
 
   return (
@@ -72,19 +68,7 @@ export default function ChamasPage() {
           <h1 className="text-3xl font-bold tracking-tight text-foreground">Your Chamas</h1>
           <p className="text-muted-foreground">Manage your group savings and investments.</p>
         </div>
-        <Dialog open={isCreateChamaDialogOpen} onOpenChange={setCreateChamaDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <PlusCircle className="mr-2 h-5 w-5" /> Create New Chama
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[525px]">
-            <DialogHeader>
-              <DialogTitle className="text-2xl">Create a New Chama</DialogTitle>
-            </DialogHeader>
-            <ChamaForm onSuccess={handleChamaCreated} setOpen={setCreateChamaDialogOpen} />
-          </DialogContent>
-        </Dialog>
+        {createDialog(isCreateChamaDialogOpen, setCreateChamaDialogOpen)}
       </div>
 
       <div className="relative">
@@ -98,7 +82,13 @@ export default function ChamasPage() {
         />
       </div>
 
-      {filteredChamas.length > 0 ? (
+      {loading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <Skeleton key={i} className="h-72 rounded-lg" />
+          ))}
+        </div>
+      ) : filteredChamas.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredChamas.map((chama) => (
             <ChamaCard key={chama.id} chama={chama} />
@@ -111,21 +101,7 @@ export default function ChamasPage() {
           <p className="mt-1 text-sm text-muted-foreground">
             {searchTerm ? "Try adjusting your search term." : "Get started by creating a new chama."}
           </p>
-          {!searchTerm && (
-             <Dialog open={isCreateChamaDialogOpen} onOpenChange={setCreateChamaDialogOpen}>
-                <DialogTrigger asChild>
-                    <Button className="mt-4">
-                        <PlusCircle className="mr-2 h-5 w-5" /> Create Chama
-                    </Button>
-                </DialogTrigger>
-                 <DialogContent className="sm:max-w-[525px]">
-                    <DialogHeader>
-                    <DialogTitle className="text-2xl">Create a New Chama</DialogTitle>
-                    </DialogHeader>
-                    <ChamaForm onSuccess={handleChamaCreated} setOpen={setCreateChamaDialogOpen} />
-                </DialogContent>
-            </Dialog>
-          )}
+          {!searchTerm && createDialog(isCreateChamaDialogOpen, setCreateChamaDialogOpen)}
         </div>
       )}
     </div>

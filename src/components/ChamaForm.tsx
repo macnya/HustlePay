@@ -24,6 +24,8 @@ import {
 } from "@/components/ui/select";
 import type { Chama } from "@/types";
 import { useToast } from "@/hooks/use-toast";
+import { createClient } from "@/lib/supabase/client";
+import { toChama, type ChamaMemberRow, type ChamaRow } from "@/lib/mappers";
 
 const chamaFormSchema = z.object({
   name: z.string().min(3, { message: "Chama name must be at least 3 characters." }),
@@ -31,18 +33,20 @@ const chamaFormSchema = z.object({
   contributionAmount: z.coerce.number().positive({ message: "Contribution amount must be positive." }),
   contributionFrequency: z.enum(["daily", "weekly", "monthly"]),
   goalAmount: z.coerce.number().optional(),
+  nextMeeting: z.string().optional(),
 });
 
 type ChamaFormValues = z.infer<typeof chamaFormSchema>;
 
 interface ChamaFormProps {
   chama?: Chama; // Optional: pass existing chama data for editing
-  onSuccess?: (data: Chama) => void; // Callback on successful submission
-  setOpen?: (open: boolean) => void; // To close dialog if used in one
+  onSuccess?: (data: Chama) => void;
+  setOpen?: (open: boolean) => void;
 }
 
 export function ChamaForm({ chama, onSuccess, setOpen }: ChamaFormProps) {
   const { toast } = useToast();
+
   const defaultValues: Partial<ChamaFormValues> = chama
     ? {
         name: chama.name,
@@ -50,6 +54,7 @@ export function ChamaForm({ chama, onSuccess, setOpen }: ChamaFormProps) {
         contributionAmount: chama.contributionAmount,
         contributionFrequency: chama.contributionFrequency,
         goalAmount: chama.goalAmount,
+        nextMeeting: chama.nextMeeting ? chama.nextMeeting.slice(0, 10) : undefined,
       }
     : {
         contributionFrequency: "monthly",
@@ -62,26 +67,104 @@ export function ChamaForm({ chama, onSuccess, setOpen }: ChamaFormProps) {
   });
 
   async function onSubmit(data: ChamaFormValues) {
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    const newChamaData: Chama = {
-      id: chama?.id || crypto.randomUUID(),
-      adminId: chama?.adminId || 'current_user_id', // Replace with actual user ID
-      createdAt: chama?.createdAt || new Date().toISOString(),
-      members: chama?.members || [],
-      totalCollected: chama?.totalCollected || 0,
-      ...data,
+    const supabase = createClient();
+    const meetingIso = data.nextMeeting
+      ? new Date(`${data.nextMeeting}T10:00:00+03:00`).toISOString()
+      : null;
+
+    const payload = {
+      name: data.name,
+      description: data.description,
+      contribution_amount: data.contributionAmount,
+      contribution_frequency: data.contributionFrequency,
+      goal_amount: data.goalAmount || null,
+      next_meeting: meetingIso,
     };
 
+    if (chama) {
+      const { data: updated, error } = await supabase
+        .from("chamas")
+        .update(payload)
+        .eq("id", chama.id)
+        .select("*, chama_members(*)")
+        .single();
+
+      if (error || !updated) {
+        toast({
+          title: "Could not update chama",
+          description: error?.message ?? "Please try again.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      toast({
+        title: "Chama Updated!",
+        description: `${data.name} has been updated.`,
+      });
+      onSuccess?.(toChama(updated as ChamaRow));
+      setOpen?.(false);
+      return;
+    }
+
+    // Create the chama, then enrol the creator as its first member.
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      toast({
+        title: "Sign in required",
+        description: "Please sign in again before creating a chama.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const { data: created, error } = await supabase
+      .from("chamas")
+      .insert({ ...payload, admin_id: user.id })
+      .select("*, chama_members(*)")
+      .single();
+
+    if (error || !created) {
+      toast({
+        title: "Could not create chama",
+        description: error?.message ?? "Please try again.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("full_name, phone")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    let memberRow: ChamaMemberRow | null = null;
+    const { data: insertedMember, error: memberError } = await supabase
+      .from("chama_members")
+      .insert({
+        chama_id: created.id,
+        user_id: user.id,
+        name: profile?.full_name || "You",
+        phone: profile?.phone || user.phone || "",
+      })
+      .select("*")
+      .single();
+
+    if (!memberError) memberRow = insertedMember;
+
     toast({
-      title: chama ? "Chama Updated!" : "Chama Created!",
-      description: `${data.name} has been successfully ${chama ? 'updated' : 'created'}.`,
-      variant: "default",
+      title: "Chama Created!",
+      description: `${data.name} is ready. Invite members to start saving together.`,
     });
 
-    onSuccess?.(newChamaData);
-    if (setOpen) setOpen(false); // Close dialog if applicable
+    onSuccess?.(
+      toChama({ ...created, chama_members: memberRow ? [memberRow] : [] } as ChamaRow)
+    );
+    setOpen?.(false);
   }
 
   return (
@@ -125,7 +208,7 @@ export function ChamaForm({ chama, onSuccess, setOpen }: ChamaFormProps) {
               <FormItem>
                 <FormLabel>Contribution Amount (KES)</FormLabel>
                 <FormControl>
-                  <Input type="number" placeholder="e.g., 5000" {...field} />
+                  <Input type="number" min={1} placeholder="e.g., 5000" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -154,27 +237,51 @@ export function ChamaForm({ chama, onSuccess, setOpen }: ChamaFormProps) {
             )}
           />
         </div>
-        <FormField
-          control={form.control}
-          name="goalAmount"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Goal Amount (KES, Optional)</FormLabel>
-              <FormControl>
-                <Input type="number" placeholder="e.g., 100000" {...field} />
-              </FormControl>
-              <FormDescription>
-                Set a target amount for this chama, if applicable.
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <FormField
+            control={form.control}
+            name="goalAmount"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Goal Amount (KES, Optional)</FormLabel>
+                <FormControl>
+                  <Input type="number" min={1} placeholder="e.g., 100000" {...field} />
+                </FormControl>
+                <FormDescription>Set a target amount for this chama, if applicable.</FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="nextMeeting"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Next Meeting (Optional)</FormLabel>
+                <FormControl>
+                  <Input type="date" {...field} value={field.value ?? ""} />
+                </FormControl>
+                <FormDescription>Meetings are stored at 10:00 EAT.</FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
         <div className="flex justify-end gap-2">
-            {setOpen && <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancel</Button>}
-            <Button type="submit" disabled={form.formState.isSubmitting}>
-            {form.formState.isSubmitting ? (chama ? "Updating..." : "Creating...") : (chama ? "Save Changes" : "Create Chama")}
+          {setOpen && (
+            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+              Cancel
             </Button>
+          )}
+          <Button type="submit" disabled={form.formState.isSubmitting}>
+            {form.formState.isSubmitting
+              ? chama
+                ? "Saving..."
+                : "Creating..."
+              : chama
+                ? "Save Changes"
+                : "Create Chama"}
+          </Button>
         </div>
       </form>
     </Form>

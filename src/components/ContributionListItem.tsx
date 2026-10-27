@@ -1,7 +1,8 @@
 import type { Contribution } from '@/types';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { DollarSign, CalendarDays, Info, User, Landmark, CheckCircle2, AlertCircle, Clock } from 'lucide-react';
+import { Info, CalendarDays, User, Landmark, CheckCircle2, AlertCircle, Clock, Smartphone } from 'lucide-react';
+import { formatKES, formatKENDate } from '@/lib/kenya';
 
 interface ContributionListItemProps {
   contribution: Contribution;
@@ -42,7 +43,7 @@ export default function ContributionListItem({ contribution, chamaName }: Contri
         <div className="flex justify-between items-start">
           <div>
             <p className="font-semibold text-lg text-primary">
-              KES {contribution.amount.toLocaleString()}
+              {formatKES(contribution.amount)}
             </p>
             <p className="text-sm text-muted-foreground flex items-center">
               <Info className="mr-1.5 h-4 w-4" /> {contribution.description}
@@ -57,8 +58,14 @@ export default function ContributionListItem({ contribution, chamaName }: Contri
         <div className="text-xs text-muted-foreground space-y-1">
           <div className="flex items-center">
             <CalendarDays className="mr-1.5 h-3.5 w-3.5" /> 
-            Date: {new Date(contribution.date).toLocaleDateString()}
+            Date: {formatKENDate(contribution.date)}
           </div>
+          {contribution.mpesaReceipt && (
+            <div className="flex items-center">
+              <Smartphone className="mr-1.5 h-3.5 w-3.5" /> 
+              M-PESA receipt: {contribution.mpesaReceipt}
+            </div>
+          )}
           {chamaName && (
             <div className="flex items-center">
               <Landmark className="mr-1.5 h-3.5 w-3.5" /> 

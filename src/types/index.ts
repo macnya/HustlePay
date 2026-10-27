@@ -8,6 +8,8 @@ export interface Contribution {
   description: string;
   memberName?: string;
   status: 'pending' | 'paid' | 'overdue';
+  paymentMethod?: 'mpesa' | 'cash' | 'bank' | 'manual';
+  mpesaReceipt?: string;
 }
 
 export interface Transaction {

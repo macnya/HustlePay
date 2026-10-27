@@ -3,6 +3,7 @@ import type { Chama } from '@/types';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Users, Target, DollarSign, ArrowRight, CalendarClock } from 'lucide-react';
+import { formatKES, formatKENDateTime } from '@/lib/kenya';
 import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
 
@@ -38,18 +39,17 @@ export default function ChamaCard({ chama }: ChamaCardProps) {
         </div>
         <div className="flex items-center text-sm text-muted-foreground">
           <DollarSign className="mr-2 h-4 w-4 text-primary" />
-          <span>KES {chama.contributionAmount.toLocaleString()} per {chama.contributionFrequency}</span>
+          <span>{formatKES(chama.contributionAmount)} per {chama.contributionFrequency}</span>
         </div>
         {chama.goalAmount && (
           <div className="flex items-center text-sm text-muted-foreground">
-            <Target className="mr-2 h-4 w-4 text-primary" />
-            <span>Goal: KES {chama.goalAmount.toLocaleString()}</span>
+            <Target className="mr-2 h-4 w-4 text-primary" />              <span>Goal: {formatKES(chama.goalAmount)}</span>
           </div>
         )}
         {chama.nextMeeting && (
             <div className="flex items-center text-sm text-muted-foreground">
                 <CalendarClock className="mr-2 h-4 w-4 text-primary" />
-                <span>Next Meeting: {new Date(chama.nextMeeting).toLocaleDateString()}</span>
+                <span>Next Meeting: {formatKENDateTime(chama.nextMeeting)} EAT</span>
             </div>
         )}
         {chama.goalAmount && (

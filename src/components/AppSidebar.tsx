@@ -2,8 +2,9 @@
 "use client";
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { Home, Landmark, HandCoins, Users, Cog, LogOut, GitFork } from 'lucide-react';
+import { usePathname, useRouter } from 'next/navigation';
+import { Home, Landmark, HandCoins, LogOut } from 'lucide-react';
+import { createClient } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -28,15 +29,8 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { href: '/', label: 'Dashboard', icon: Home },
-  { href: '/chamas', label: 'Chamas', icon: Landmark, badge: '3' },
+  { href: '/chamas', label: 'Chamas', icon: Landmark },
   { href: '/contributions', label: 'Contributions', icon: HandCoins },
-  { href: '/auth', label: 'Auth Screen (Dev)', icon: GitFork },
-  // Add more items as needed
-];
-
-const bottomNavItems: NavItem[] = [
-  { href: '/settings', label: 'Settings', icon: Cog },
-  { href: '/logout', label: 'Logout', icon: LogOut },
 ];
 
 interface AppSidebarProps {
@@ -45,6 +39,13 @@ interface AppSidebarProps {
 
 export default function AppSidebar({ isMobileSheet = false }: AppSidebarProps) {
   const pathname = usePathname();
+  const router = useRouter();
+
+  const handleSignOut = async () => {
+    await createClient().auth.signOut();
+    router.push('/auth');
+    router.refresh();
+  };
 
   const renderNavItems = (items: NavItem[]) => {
     return items.map((item) => (
@@ -81,7 +82,16 @@ export default function AppSidebar({ isMobileSheet = false }: AppSidebarProps) {
       </SidebarContent>
       <SidebarFooter className="p-2 border-t border-sidebar-border">
         <SidebarMenu>
-          {renderNavItems(bottomNavItems)}
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              onClick={handleSignOut}
+              className="w-full cursor-pointer"
+              tooltip="Sign Out"
+            >
+              <LogOut className="h-5 w-5" />
+              <span className="truncate">Sign Out</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>
     </>

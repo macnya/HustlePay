@@ -2,6 +2,13 @@ import type { Transaction } from '@/types';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ArrowDownCircle, ArrowUpCircle, AlertTriangle, CheckCircle2, Clock, Receipt } from 'lucide-react';
+import { formatKES, formatKENDateTime } from '@/lib/kenya';
+
+const METHOD_LABELS: Record<Transaction['method'], string> = {
+  mpesa: 'M-PESA',
+  cash: 'Cash',
+  bank: 'Bank',
+};
 
 interface TransactionListItemProps {
   transaction: Transaction;
@@ -58,12 +65,12 @@ export default function TransactionListItem({ transaction }: TransactionListItem
               {transaction.description}
             </p>
             <p className={`font-bold text-lg ${typeColor}`}>
-              {amountPrefix}KES {transaction.amount.toLocaleString()}
+              {amountPrefix}{formatKES(transaction.amount)}
             </p>
           </div>
           <div className="flex justify-between items-center mt-1">
             <p className="text-xs text-muted-foreground">
-              {new Date(transaction.date).toLocaleString()} - Via {transaction.method}
+              {formatKENDateTime(transaction.date)} - Via {METHOD_LABELS[transaction.method] ?? transaction.method}
             </p>
             <Badge variant={transaction.status === 'completed' ? 'default' : transaction.status === 'pending' ? 'secondary' : 'destructive'} className="capitalize text-xs px-2 py-0.5">
               {getStatusIcon(transaction.status)}
